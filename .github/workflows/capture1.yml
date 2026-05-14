@@ -7,7 +7,7 @@ on:
 
 jobs:
   capture-job:
-    runs-on: [self-hosted, codespace-capture]   # dùng runner trong Codespace
+    runs-on: [self-hosted]  # dùng runner trong Codespace
     steps:
       - uses: actions/checkout@v4
 
