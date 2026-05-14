@@ -1,0 +1,62 @@
+name: Capture Traffic Demo
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:   # cho phép chạy thủ công
+
+jobs:
+  capture-job:
+    runs-on: [self-hosted, codespace-capture]   # dùng runner trong Codespace
+    steps:
+      - uses: actions/checkout@v4
+
+      # Tạo script capture
+      - name: Create capture script
+        run: |
+          cat > capture.sh << 'EOF'
+          #!/bin/bash
+          echo "Starting tcpdump in background..."
+          sudo tcpdump -i any -s 0 -G 60 -W 1 -w capture.pcap &
+          echo $! > /tmp/tcpdump.pid
+          EOF
+          chmod +x capture.sh
+
+      # Tạo script stop capture
+      - name: Create stop script
+        run: |
+          cat > stop.sh << 'EOF'
+          #!/bin/bash
+          if [ -f /tmp/tcpdump.pid ]; then
+              kill -SIGINT $(cat /tmp/tcpdump.pid)
+              rm -f /tmp/tcpdump.pid
+              echo "Stopped tcpdump"
+          fi
+          EOF
+          chmod +x stop.sh
+
+      # Chạy capture nền
+      - name: Start capture
+        run: ./capture.sh &
+
+      # Mô phỏng build/test (thay bằng lệnh thật nếu có)
+      - name: Build
+        run: |
+          echo "Running build..."
+          sleep 5
+      - name: Test
+        run: |
+          echo "Running tests..."
+          sleep 5
+
+      # Dừng capture
+      - name: Stop capture
+        run: ./stop.sh
+
+      # Upload file pcap
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: captured-traffic
+          path: capture.pcap
+          if-no-files-found: warn
